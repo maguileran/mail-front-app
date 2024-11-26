@@ -34,7 +34,7 @@ export default function Index() {
       <div className="flex flex-col items-center gap-16">
         <header className="flex flex-col items-center gap-9">
           <h1 className="leading text-2xl font-bold text-gray-800 dark:text-gray-100">
-            Welcome to <span className="sr-only">Remix</span>
+            Welcome
           </h1>
         </header>
         <nav className="min-w-[800px] gap-4 rounded-3xl border border-gray-200 p-6 dark:border-gray-700">
