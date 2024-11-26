@@ -13,7 +13,13 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { ArrowUpDown, ChevronDown, MoreHorizontal } from "lucide-react";
+import {
+  ArrowUpDown,
+  ChevronDown,
+  MailOpen,
+  MailIcon,
+  TrashIcon,
+} from "lucide-react";
 
 import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
@@ -21,9 +27,6 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
 import { Input } from "~/components/ui/input";
@@ -35,108 +38,143 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table";
-import { useLoaderData } from "@remix-run/react";
-import { getMailsService, MailDataList } from "../services/mails/get-mails";
+import { MailDataList } from "~/services/mails/mails-services";
 
-export const columns: ColumnDef<MailDataList>[] = [
-  {
-    id: "select",
-    header: ({ table }) => (
-      <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && "indeterminate")
-        }
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Select row"
-      />
-    ),
-    enableSorting: false,
-    enableHiding: false,
-  },
-  {
-    accessorKey: "tags",
-    header: "Tags",
-    cell: ({ row }) => <div className="capitalize">{row.getValue("tags")}</div>,
-  },
-  {
-    accessorKey: "title",
-    header: "Title",
-    cell: ({ row }) => (
-      <div className="capitalize">{row.getValue("title")}</div>
-    ),
-  },
-  {
-    accessorKey: "from",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          From
-          <ArrowUpDown />
-        </Button>
-      );
-    },
-    cell: ({ row }) => <div className="lowercase">{row.getValue("from")}</div>,
-  },
-  {
-    accessorKey: "createdAt",
-    header: () => <div className="text-right">Recibido</div>,
-    cell: ({ row }) => {
-      return (
-        <div className="text-right font-medium">
-          {new Date(row.getValue("createdAt")).toDateString()}
-        </div>
-      );
-    },
-  },
-  {
-    id: "actions",
-    enableHiding: false,
-    cell: ({ row }) => {
-      const mail = row.original;
-
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem
-              onClick={() => navigator.clipboard.writeText(mail.from)}
-            >
-              Copy sender email
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>View customer</DropdownMenuItem>
-            <DropdownMenuItem>View payment details</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      );
-    },
-  },
-];
-
-export const loader = async () => {
-  const mails = await getMailsService();
-  return Response.json({ mails });
+type MailListProps = {
+  data: MailDataList[];
+  handleRemoveMail: (id: number) => void;
+  handleUpdateMail: (id: number, isRead: boolean) => void;
 };
 
-export default function Home() {
-  const { mails } = useLoaderData<typeof loader>();
+type ColumnDefinitionProps = {
+  _handleUpdateMail: (id: number, isRead: boolean) => void;
+  _handleRemoveMail: (id: number) => void;
+  _setMailData: React.Dispatch<React.SetStateAction<MailDataList[]>>;
+};
+
+const _getColumnsDefinition = ({
+  _handleUpdateMail,
+  _handleRemoveMail,
+  _setMailData,
+}: ColumnDefinitionProps) => {
+  const columns: ColumnDef<MailDataList>[] = [
+    {
+      id: "select",
+      header: ({ table }) => (
+        <Checkbox
+          checked={
+            table.getIsAllPageRowsSelected() ||
+            (table.getIsSomePageRowsSelected() && "indeterminate")
+          }
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label="Select all"
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          aria-label="Select row"
+        />
+      ),
+      enableSorting: false,
+      enableHiding: false,
+    },
+    {
+      accessorKey: "isRead",
+      header: "",
+      cell: ({ row }) => (
+        <Button
+          variant={"ghost"}
+          onClick={async () => {
+            const mail = row.original;
+            await _handleUpdateMail(mail.id, !mail.isRead);
+            _setMailData((prev: MailDataList[]) =>
+              prev.map((item) =>
+                item.id === mail.id ? { ...item, isRead: !mail.isRead } : item
+              )
+            );
+          }}
+        >
+          {row.original.isRead ? <MailOpen /> : <MailIcon />}
+        </Button>
+      ),
+      enableSorting: false,
+      enableHiding: false,
+    },
+    {
+      accessorKey: "title",
+      header: "Title",
+      cell: ({ row }) => (
+        <div className="capitalize">{row.getValue("title")}</div>
+      ),
+    },
+    {
+      accessorKey: "subject",
+      header: "Subject",
+      cell: ({ row }) => (
+        <div className="capitalize">{row.getValue("subject")}</div>
+      ),
+    },
+    {
+      accessorKey: "from",
+      header: ({ column }) => {
+        return (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            From
+            <ArrowUpDown />
+          </Button>
+        );
+      },
+      cell: ({ row }) => (
+        <div className="lowercase">{row.getValue("from")}</div>
+      ),
+    },
+    {
+      accessorKey: "createdAt",
+      header: () => <div className="text-right">Date</div>,
+      cell: ({ row }) => {
+        return (
+          <div className="text-right font-medium">
+            {new Date(row.getValue("createdAt")).toDateString()}
+          </div>
+        );
+      },
+      enableHiding: false,
+    },
+    {
+      id: "actions",
+      enableHiding: false,
+      cell: ({ row }) => {
+        const mail = row.original;
+        return (
+          <Button
+            variant={"ghost"}
+            onClick={async () => {
+              await _handleRemoveMail(mail.id);
+              _setMailData((prev: MailDataList[]) =>
+                prev.filter((item) => item.id !== mail.id)
+              );
+            }}
+          >
+            <TrashIcon />
+          </Button>
+        );
+      },
+    },
+  ];
+  return columns;
+};
+
+export default function MailList({
+  data,
+  handleUpdateMail,
+  handleRemoveMail,
+}: MailListProps) {
+  const [mailData, setMailData] = React.useState<MailDataList[]>(data);
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
@@ -145,8 +183,15 @@ export default function Home() {
     React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
 
+  const columns = _getColumnsDefinition({
+    _handleRemoveMail: handleRemoveMail,
+    _handleUpdateMail: handleUpdateMail,
+    _setMailData: setMailData,
+  });
+
   const table = useReactTable({
-    data: mails,
+    initialState: {},
+    data: mailData,
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
