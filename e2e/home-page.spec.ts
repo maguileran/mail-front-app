@@ -22,9 +22,29 @@ test("[Should] filter emails with no results [Then] clear and see all items", as
   page,
 }) => {
   await page.goto("/");
-  await page.getByPlaceholder("Filter emails...").click();
-  await page.getByPlaceholder("Filter emails...").fill("b");
+  await page.getByPlaceholder("Filter by email...").click();
+  await page.getByPlaceholder("Filter by email...").fill("b");
   await expect(page.locator("td")).toContainText("No results.");
-  await page.getByPlaceholder("Filter emails...").click();
-  await page.getByPlaceholder("Filter emails...").fill("");
+  await page.getByPlaceholder("Filter by email...").click();
+  await page.getByPlaceholder("Filter by email...").fill("");
+});
+
+test("[Should] assign a tag to mail [Then] remove the tag", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.locator("td:nth-child(3)").first().click();
+  await page.getByRole("button", { name: "Close" }).click();
+  await page.locator("tr:nth-child(2) > td:nth-child(3)").click();
+  await page.getByRole("button", { name: "Spam" }).click();
+  await page.getByRole("button", { name: "Save" }).click();
+  await page
+    .locator("td")
+    .filter({ hasText: /^Other$/ })
+    .click();
+  await expect(page.locator("tbody")).toContainText("Other");
+  await page.locator("tr:nth-child(2) > td:nth-child(3)").click();
+  await page.getByRole("button", { name: "Spam" }).click();
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect(page.locator("tbody")).toContainText("OtherSpam");
 });
