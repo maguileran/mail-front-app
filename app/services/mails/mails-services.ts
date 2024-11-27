@@ -1,3 +1,13 @@
+import { getBrowserEnv } from "../../lib/utils";
+import { TagDataList } from "../tags/tags-services";
+
+export type Tag = {
+  tag?: {
+    id: number;
+    name: string;
+  };
+};
+
 export type MailDataList = {
   id: number;
   createdAt: Date;
@@ -8,15 +18,8 @@ export type MailDataList = {
   isRead: boolean;
   from: string;
   to: string;
-  tag: string;
+  tags: Tag[];
 };
-
-function getBrowserEnv(key: string): string | undefined {
-  if (typeof window !== "undefined" && window.ENV) {
-    return window.ENV?.[key];
-  }
-  return undefined;
-}
 
 export const getMailsService = async (): Promise<MailDataList[]> => {
   const response = await fetch(`${process.env.BFF_URL}/mail`);
@@ -44,6 +47,22 @@ export const removeMailService = async (
 ): Promise<MailDataList[]> => {
   const response = await fetch(`${getBrowserEnv("BFF_URL")}/mail/${id}`, {
     method: "DELETE",
+  });
+  return response.json();
+};
+
+export const tagToMailService = async (
+  id: number,
+  tags: Tag[]
+): Promise<TagDataList[]> => {
+  const response = await fetch(`${getBrowserEnv("BFF_URL")}/mail/${id}`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      tags: tags.map(({ tag }) => tag?.id),
+    }),
   });
   return response.json();
 };

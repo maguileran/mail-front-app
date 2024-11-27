@@ -38,21 +38,27 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table";
-import { MailDataList } from "~/services/mails/mails-services";
+import { MailDataList, Tag } from "~/services/mails/mails-services";
+import TagsList from "../tags";
+import { SelectTags } from "../tags/select-tags";
+import { TagDataList } from "../../services/tags/tags-services";
 
 type MailListProps = {
   data: MailDataList[];
   handleRemoveMail: (id: number) => void;
   handleUpdateMail: (id: number, isRead: boolean) => void;
+  handleTagToMail: (id: number, tags: Tag[]) => void;
 };
 
 type ColumnDefinitionProps = {
+  _handleTagToMail: (id: number, tags: Tag[]) => void;
   _handleUpdateMail: (id: number, isRead: boolean) => void;
   _handleRemoveMail: (id: number) => void;
   _setMailData: React.Dispatch<React.SetStateAction<MailDataList[]>>;
 };
 
 const _getColumnsDefinition = ({
+  _handleTagToMail,
   _handleUpdateMail,
   _handleRemoveMail,
   _setMailData,
@@ -100,6 +106,42 @@ const _getColumnsDefinition = ({
         </Button>
       ),
       enableSorting: false,
+      enableHiding: false,
+    },
+    {
+      accessorKey: "addTags",
+      header: "",
+      cell: ({ row }) => {
+        const mail = row.original;
+        const onUpdateTags = async (newTags: Tag[]) => {
+          await _handleTagToMail(mail.id, newTags);
+          _setMailData((prev: MailDataList[]) =>
+            prev.map((item) =>
+              item.id === mail.id ? { ...item, tags: newTags } : item
+            )
+          );
+        };
+
+        return <TagsList tags={mail.tags} onUpdateTags={onUpdateTags} />;
+      },
+      enableHiding: false,
+    },
+    {
+      accessorKey: "tags",
+      header: () => <div>Tags</div>,
+      cell: ({ row }) => {
+        const mail = row.original;
+        const availableTags = mail.tags.map(({ tag }) => tag) as TagDataList[];
+
+        return (
+          <SelectTags
+            disable={true}
+            availableTags={availableTags}
+            setSelectedTags={() => null}
+            tags={mail.tags}
+          />
+        );
+      },
       enableHiding: false,
     },
     {
@@ -171,6 +213,7 @@ const _getColumnsDefinition = ({
 
 export default function MailList({
   data,
+  handleTagToMail,
   handleUpdateMail,
   handleRemoveMail,
 }: MailListProps) {
@@ -184,6 +227,7 @@ export default function MailList({
   const [rowSelection, setRowSelection] = React.useState({});
 
   const columns = _getColumnsDefinition({
+    _handleTagToMail: handleTagToMail,
     _handleRemoveMail: handleRemoveMail,
     _handleUpdateMail: handleUpdateMail,
     _setMailData: setMailData,
@@ -213,7 +257,7 @@ export default function MailList({
     <div className="w-full">
       <div className="flex items-center py-4">
         <Input
-          placeholder="Filter emails..."
+          placeholder="Filter by email..."
           value={(table.getColumn("from")?.getFilterValue() as string) ?? ""}
           onChange={(event) =>
             table.getColumn("from")?.setFilterValue(event.target.value)

@@ -3,9 +3,12 @@ import {
   getMailsService,
   markAsReadUnreadService,
   removeMailService,
+  Tag,
+  tagToMailService,
 } from "../services/mails/mails-services";
 import MailList from "../layout/mails";
 import { useLoaderData } from "@remix-run/react";
+import { getTagsService } from "../services/tags/tags-services";
 
 export const meta: MetaFunction = () => {
   return [
@@ -15,11 +18,15 @@ export const meta: MetaFunction = () => {
 };
 
 export const loader = async () => {
-  return await getMailsService();
+  const values = {
+    mails: await getMailsService(),
+    tags: await getTagsService(),
+  };
+  return values;
 };
 
 export default function Index() {
-  const mails = useLoaderData<typeof loader>();
+  const { mails, tags } = useLoaderData<typeof loader>();
 
   const handleUpdateMail = (id: number, isRead: boolean) => {
     markAsReadUnreadService(id, isRead);
@@ -27,6 +34,10 @@ export default function Index() {
 
   const handleRemoveMail = (id: number) => {
     removeMailService(id);
+  };
+
+  const handleTagToMail = (id: number, tags: Tag[]) => {
+    tagToMailService(id, tags);
   };
 
   return (
@@ -42,6 +53,7 @@ export default function Index() {
             data={mails}
             handleRemoveMail={handleRemoveMail}
             handleUpdateMail={handleUpdateMail}
+            handleTagToMail={handleTagToMail}
           />
         </nav>
       </div>
